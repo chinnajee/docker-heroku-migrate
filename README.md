@@ -117,7 +117,7 @@ If you're using a git repository you will need to add `migration/run.sh` to *.gi
 This will install our tools and run *run.sh*.
 
     FROM ubuntu:latest
-    MAINTAINER Matt Baldwin "baldwin@stackpointcloud.com"
+    MAINTAINER Matt Baldwin "baldwin@spc"
 
     # Install MongoDB and PostgreSQL Tools
     # Let's add our MongoDB and PostgreSQL tools
