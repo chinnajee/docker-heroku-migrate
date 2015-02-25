@@ -1,6 +1,6 @@
 # Let's use the official Passenger container.
 FROM phusion/passenger-ruby19:latest
-MAINTAINER Matt Baldwin "baldwin@spc"
+MAINTAINER Matt Baldwin "baldwin@stackpointcloud.com"
 
 # Set our ENV Settings
 ENV POSTGRES_DB_NAME <database_name>
