@@ -1,0 +1,27 @@
+web:
+  build: .
+  ports:
+   - "80:80"
+   - "443:443"
+  links:
+   - postgres
+   - mongodb
+  dns:
+   - 8.8.8.8
+   - 8.8.4.4
+postgres:
+  hostname: postgres
+  image: postgres:latest
+  volumes:
+    - /opt/postgres:/var/lib/postgresql/data
+  dns:
+   - 8.8.8.8
+   - 8.8.4.4
+mongodb:
+  hostname: mongodb
+  build: mongo/.
+  volumes:
+    - /opt/mongodb:/data/db
+  dns:
+   - 8.8.8.8
+   - 8.8.4.4

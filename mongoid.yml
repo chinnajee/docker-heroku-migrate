@@ -1,0 +1,22 @@
+development:
+  sessions:
+    default:
+      database: test2_development
+      hosts:
+        - 127.0.0.1:27017
+      options:
+  options:
+test:
+  sessions:
+    default:
+      database: test2_test
+      hosts:
+        - 0.0.0.0:27017
+      options:
+        read: primary
+        max_retries: 1
+        retry_interval: 0
+production:
+  sessions:
+    default:
+      uri: <%= ENV['MONGODB_URI'] %>
