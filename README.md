@@ -11,7 +11,7 @@
 
 ## Introduction
 
-My company, [StackPointCloud](http://www.stackpointcloud.com), just finished up a project where we were asked to migrate a Ruby-on-Rails application running at Heroku to ProfitBricks. This gave us a chance to explore more complex Docker solutions that leveraged custom images, as opposed to using pre-built ones. 
+Our company, [StackPointCloud](http://www.stackpointcloud.com), just finished up a project where we were asked to migrate a Ruby-on-Rails application running at Heroku to ProfitBricks. This gave us a chance to explore more complex Docker solutions that leveraged custom images, as opposed to using pre-built ones. 
 
 The process for moving from Heroku to Docker involved a number of things including,
 - Determining the total number of containers the target would eventually require.
@@ -19,9 +19,9 @@ The process for moving from Heroku to Docker involved a number of things includi
 - Specifying how the environment was configured and organized.
 - Pulling the code from Heroku's repository automatically and migrating the databases. 
 
-The first goal of this project was to simply bring up a container environment that matches the environment the developers were using at Heroku. In a later article, I will expand upon this work showing you how to introduce high-availability and database redundancy into your Heroku to Docker solution.
+The primary goal of this project was to simply bring up a container environment that matched the environment the developers were using at Heroku. In a later article, we will expand upon this work, showing you how to introduce high-availability and database redundancy into your Heroku to Docker solution.
 
-It was also very important that the source and the current database content be automatically synchronized into the Docker environment upon container build - this allows us to always use real data to test against and validate bugs. It also makes the migration fully automated. 
+A second, important, goal was to have the source and the current database content automatically synchronized into the Docker environment upon container build; this allows us to always use real data to test against and validate bugs. It also makes the migration fully automated. 
 
 You can follow along with the files from our [repository](https://github.com/StackPointCloud/docker-heroku-migrate).
 
@@ -39,28 +39,30 @@ Our containers will be:
 3. MongoDB
 4. Migration
 
-As you can see, our customer is using PostgreSQL alongside MongoDB. This tutorial assumes you're running both. If not, simply omit any steps that don't apply to your running environment from your own process. Over time, we hope to expand our repository to include templates for different services at Heroku. 
+As we can see, our customer is using PostgreSQL alongside MongoDB. This tutorial assumes we're running both. If that's not the case, simply omit any steps that don't apply to your running environment. 
+
+Over time, we hope to expand the repository to include templates for different services at Heroku. 
 
 ### Requirements
-Before you begin you will need: 
+Before you begin, you will need: 
 
 * Credentials with sufficient privileges to pull data from your Heroku PostgreSQL and MongoDB databases.
 * An OAuth token for your application at GitHub. You can read more about how to do that [here](tutorials/configure-a-docker-container-to-automatically-pull-from-github-using-oauth)
 
-When you execute `fig up` for the first time, Fig will build the containers and spin them up. The whole environment spins back down once the migration container completes its process. You then remove any references to the migration container from the system, unless you want to re-use it. This is all covered in more detail throughout this article. 
+When we execute `$ fig up` for the first time, Fig will build the containers and spin them up. The whole environment spins back down once the migration container completes its process. We then remove any references to the migration container from the system, unless we want to re-use it. This is all covered in more detail throughout this article. 
 
 ## ProfitBricks Environment
 
-To keep things simple, I built out a single *Ubuntu 14.04* instance in its own dedicated Virtual Data Center. The volume is configured for 50GB, which should be sufficient for our data sets and number of Docker images. 
+To keep things simple, we built out a single *Ubuntu 14.04* instance in its own dedicated Virtual Data Center. The volume is configured for 50GB, which should be sufficient for our data sets and number of Docker images. 
 
-From within the DCD R2, create a Virtual Data Center with the following:
+From within the DCD R2, we create a Virtual Data Center with the following:
 
 * One server connected to the public Internet. 
-* One volume attached to the server. Your distribution doesn't really matter as long as it can run the latest version of Docker. 
+* One volume attached to the server. Our distribution doesn't really matter as long as it can run the latest version of Docker. 
 
-Your configuration values should match up with what your current needs. In our case, we went with 4 cores and 8 GB in memory. We can scale this at anytime - which is nice; so, be sure to configure your server to allow hot plug for memory and core. 
+The configuration values should match up to our current needs. In this case, we went with 4 cores and 8 GB in memory. We can scale this at anytime - which is nice; so, be sure to configure your server to allow hot plug for memory and core. 
 
-Next, you need to install Docker. You can follow this other post if you need information on how to [get Docker running on Ubuntu](https://devops.profitbricks.com/tutorials/setup-docker-on-ubuntu-at-profitbricks/).
+Next, we need to install Docker. Follow this other post if you need information on how to [get Docker running on Ubuntu](https://devops.profitbricks.com/tutorials/setup-docker-on-ubuntu-at-profitbricks/).
 
 ## MongoDB on Heroku
 
@@ -75,7 +77,7 @@ Copy the URL string; it looks something like this:
 
 ``` MONGOHQ_URL=mongodb://heroku:password@kahana.mongohq.com:10033/app12345678 ```
  
-Your password will be a long, random string. You will be using this in *run.sh* for the migration. 
+The password will be a long, random string. We will be using this in *run.sh* for the migration. 
 
 ### Mongo Container Dockerfile
 
@@ -97,13 +99,13 @@ Our MongoDB container is simple. We spin it up using the following Dockerfile co
 
     CMD ["mongod"]
 
-You'll notice that we map a volume from within the container to a local volume on my host. This allows us to persist our mongo data across container restarts. Eventually, it will also enable us to abstract the volume into its own container, allowing for greater portability; it also better adheres to Docker's data volume patterns.
+Notice that we map a volume from within the container to a local volume on the host. This allows us to persist our mongo data across container restarts. Eventually, it will also enable us to abstract the volume into its own container, allowing for greater portability; it also better adheres to Docker's data volume patterns.
 
 ## PostgreSQL on Heroku
 
-Your application will most likely use the PostgreSQL provided by Heroku. If so, then you can find your credentials and connection settings by going to the *Databases* section of your account and clicking on the appropriate database for your app. 
+Your application will most likely use the PostgreSQL provided by Heroku. If so, find the credentials and connection settings by going to the *Databases* section of the account and clicking on the appropriate database for the app. 
 
-Again, your password will be a long, random string and will be used in *run.sh*. 
+Again, the password will be a long, random string and will be used in *run.sh*. 
 
 ### PostgreSQL Container Docker
 
@@ -111,7 +113,7 @@ For PostgreSQL, we went with having the build process happen within Fig versus l
 
 ## Migration
 
-Let's prepare our migration container now that we have situated both databases. This container will be used once and then discarded at the end of this process. Any help in simplifying this process is appreciated, of course.  
+Let's prepare our migration container now that we have situated both databases. This container will be used once and then discarded at the end of the process. Any help in simplifying this process is appreciated, of course.  
 
 We have two components here: 
 
@@ -120,13 +122,13 @@ We have two components here:
 
 The Dockerfile installs our Mongo and Postgres tools; run.sh performs the migration.
 
-If you're using [the repo](https://github.com/StackPointCloud/docker-heroku-migrate), these are kept in the `migration` directory.
+If you're using [our repo](https://github.com/StackPointCloud/docker-heroku-migrate), these are kept in the `migration` directory.
 
-If you're using a git repository you will need to add `migration/run.sh` to *.gitignore*. This will protect you from adding your credentials to your repo. 
+If you're using a git repository, add `migration/run.sh` to *.gitignore*. This will protect you from publishing private credentials to your repo. 
 
 ### Migration Container Dockerfile
 
-The following code sample will install our tools and run *run.sh*.
+The following code sample installs our tools and runs *run.sh*.
 
     FROM ubuntu:latest
     MAINTAINER Matt Baldwin "baldwin@spc"
@@ -148,7 +150,7 @@ The following code sample will install our tools and run *run.sh*.
 
 ### Migration *run.sh*
 
-In the following sample, you will want to update the following values,
+In the following sample, we will want to update the following values,
 
 - host
 - database name 
@@ -206,7 +208,7 @@ The *Passenger* container runs Nginx as the web server. Our web app configuratio
         passenger_ruby /usr/bin/ruby1.9.1;
     }
 
-In our case, the customer is using Ruby 1.9.3 so we've customized the *Passenger* settings for this. 
+In our case, the customer is using Ruby 1.9.3 so we've customized the *Passenger* settings to account for this. 
 
 ### database.yml
 
@@ -225,7 +227,7 @@ We've updated the Ruby project's *database.yml* file and simply overwrite the on
       database: <%= ENV['POSTGRES_DB_NAME'] %>
       username: postgres
 
-You'll note we're referencing environment variables created by Docker. The first one, `POSTGRES_PORT_5432_TCP_ADDR`, is our PostgreSQL server. The second, `POSTGRES_DB_NAME`, is our DB name and is set within our Dockerfile. 
+Note that we're referencing environment variables created by Docker. The first one, `POSTGRES_PORT_5432_TCP_ADDR`, is our PostgreSQL server. The second, `POSTGRES_DB_NAME`, is our DB name and is set within our Dockerfile. 
 
 ### mongoid.yml
 
@@ -323,11 +325,11 @@ At this point, we have all the components ready to perform the migration and run
 
 Now that we're ready, let's create our *fig.yml* file. 
 
-Install Fig using `pip install -U fig`. Additional information on this can be found [here](http://www.fig.sh/install.html).
+Install Fig using `$ pip install -U fig`. Additional information on this can be found [here](http://www.fig.sh/install.html).
 
 For our first Fig run, we will need to use the [migration *fig.yml* configuration](#migration-fig-yml-configuration), *fig.yml-migration* in the repo.
 
-To kick-off the migration, simply issue the command: `fig up`. 
+To kick-off the migration, simply issue the command: `$ fig up`. 
 
 This will run for a bit after which all the containers get shut down. We will see output reflecting various tasks. The output will be color coded by container name. Ensure that the migration tasks run successfully.  
 
@@ -422,14 +424,14 @@ Upon running Fig once your *fig.yml* should be updated to look like this:
 
 ## Post Migration
 
-Once we've ran `fig up` for the first time, the environment should be spun down. We should have seen the containers spin up and the output reflecting the migration tasks as they completed. Before we run Fig again, we will need to first remove any references to the migration container. We will:
+Once we've ran `$ fig up` for the first time, the environment should be spun down. We should have seen the containers spin up and the output reflecting the migration tasks as they completed. Before we run Fig again, we will need to first remove any references to the migration container. We will:
 
 1. Remove the migration container's entry from *fig.yml*. See [Post-Migration *fig.yml*](#post-migration-fig-yml). The repo file *fig.yml-production* is also a copy of this file.
 2. Optionally, remove the migration container and image from Docker. 
 
 The second item is optional and depends on if we'll need that container again. 
 
-Also, it is a good practice to `docker commit` the *web*, *mongodb*, and *postgres* containers once the migration is complete and we're happy with the setup. 
+Also, it is a good practice to `$ docker commit` the *web*, *mongodb*, and *postgres* containers once the migration is complete and we're happy with the setup. 
 
 Now, we simply run `fig up` again to bring up the production environment.
 
